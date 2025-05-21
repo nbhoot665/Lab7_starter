@@ -21,7 +21,7 @@ describe('Basic user flow for Website', () => {
   // Check to make sure that all 20 <product-item> elements have data in them
   // We use .skip() here because this test has a TODO that has not been completed yet.
   // Make sure to remove the .skip after you finish the TODO. 
-  it.skip('Make sure <product-item> elements are populated', async () => {
+  it('Make sure <product-item> elements are populated', async () => {
     console.log('Checking to make sure <product-item> elements are populated...');
 
     // Start as true, if any don't have data, swap to false
@@ -34,6 +34,10 @@ describe('Basic user flow for Website', () => {
         return data = item.data;
       });
     });
+    for (const itemHandle of prodItems) {
+      const data = await itemHandle.evaluate(el => el.data);
+      if (!data.title || !data.price || !data.image) allArePopulated = false;
+    }
 
     console.log(`Checking product item 1/${prodItemsData.length}`);
 
@@ -57,7 +61,7 @@ describe('Basic user flow for Website', () => {
 
   // Check to make sure that when you click "Add to Cart" on the first <product-item> that
   // the button swaps to "Remove from Cart"
-  it.skip('Clicking the "Add to Cart" button should change button text', async () => {
+  it('Clicking the "Add to Cart" button should change button text', async () => {
     console.log('Checking the "Add to Cart" button...');
 
     /**
@@ -69,11 +73,17 @@ describe('Basic user flow for Website', () => {
      * Remember to remove the .skip from this it once you are finished writing this test.
      */
 
+     const firstI = await page.$('product-item');
+     const buttonHndl = await firstI.$('button');        
+     await buttonHndl.click();
+     const btnTxt = await buttonHandle.evaluate(btn => btn.innerText);
+     expect(btnTxt).toBe('Remove from Cart');
+
   }, 2500);
 
   // Check to make sure that after clicking "Add to Cart" on every <product-item> that the Cart
   // number in the top right has been correctly updated
-  it.skip('Checking number of items in cart on screen', async () => {
+  it('Checking number of items in cart on screen', async () => {
     console.log('Checking number of items in cart on screen...');
 
     /**
@@ -82,12 +92,19 @@ describe('Basic user flow for Website', () => {
        get the shadowRoot and query select the button inside, and click on it.
      * Check to see if the innerText of #cart-count is 20
      * Remember to remove the .skip from this it once you are finished writing this test.
-     */
+     */// click every product’s button
+    for (const item of await page.$$('product-item')) {
+      const btn = await item.$('button');
+      const txt = await btn.evaluate(b => b.innerText);
+      if (txt === 'Add to Cart') await btn.click();
+    }
+    const cartCnt = await page.$eval('#cart-count', el => el.innerText);
+    expect(cartCnt).toBe('20');
 
   }, 10000);
 
   // Check to make sure that after you reload the page it remembers all of the items in your cart
-  it.skip('Checking number of items in cart on screen after reload', async () => {
+  it('Checking number of items in cart on screen after reload', async () => {
     console.log('Checking number of items in cart on screen after reload...');
 
     /**
@@ -97,6 +114,13 @@ describe('Basic user flow for Website', () => {
      * Also check to make sure that #cart-count is still 20
      * Remember to remove the .skip from this it once you are finished writing this test.
      */
+       await page.reload({ waitUntil: 'networkidle0' });
+       const btnStates = await page.$$eval('product-item', items =>
+         items.every(itm => itm.shadowRoot.querySelector('button').innerText === 'Remove from Cart')
+       );
+       const cartCnt = await page.$eval('#cart-count', el => el.innerText);
+       expect(btnStates).toBe(true);
+       expect(cartCnt).toBe('20');
 
   }, 10000);
 
